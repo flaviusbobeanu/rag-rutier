@@ -1,0 +1,24 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Generated data (can be rebuilt from data/raw with the ingest scripts)
+data/processed/*
+!data/processed/.gitkeep
+chroma_db/
+
+# Uploaded PDFs must never be stored or committed
+uploads/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

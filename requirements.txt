@@ -1,0 +1,9 @@
+# Packages are added phase by phase, so each one has a clear reason to be here.
+
+# Phase 0: config and dev tools
+pydantic-settings>=2.4
+ruff>=0.6
+pytest>=8.0
+
+# Phase 2: parsing the law HTML
+beautifulsoup4>=4.12
