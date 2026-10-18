@@ -31,3 +31,6 @@ httpx>=0.27  # FastAPI's TestClient
 # Phase 9: PDF text extraction + OCR (OCR also needs the Tesseract program, see README)
 pdfplumber>=0.11
 pytesseract>=0.3.10
+
+# Phase 10: chat UI (talks to the FastAPI backend over HTTP with httpx)
+streamlit>=1.38

@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # Full path to tesseract.exe, only needed if Tesseract is not on PATH (empty = look on PATH)
     tesseract_cmd: str = ""
 
+    # Where the Streamlit frontend finds the FastAPI backend
+    api_url: str = "http://127.0.0.1:8000"
+
     raw_dir: Path = PROJECT_ROOT / "data" / "raw"
     processed_dir: Path = PROJECT_ROOT / "data" / "processed"
 
