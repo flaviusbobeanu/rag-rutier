@@ -39,7 +39,7 @@ This is a **portfolio/CV project** for tech internship interviews, so code quali
 - **Embeddings:** multilingual model with good Romanian support: `BAAI/bge-m3` (default) or `intfloat/multilingual-e5-large`, via `sentence-transformers`
 - **Vector DB:** **ChromaDB** (local, persistent). Qdrant only if there is a concrete reason.
 - **Keyword search:** BM25 (`rank-bm25`) for hybrid search, since queries like "art. 102" need exact matching
-- **LLM:** OpenAI API (small model) by default, configurable to a local model via **Ollama**. Keep the LLM behind one small interface so it can be swapped.
+- **LLM:** Claude API (`anthropic` Python SDK), model `claude-opus-5-5` by default, configurable to a local model via **Ollama**. Keep the LLM behind one small interface so it can be swapped. (`claude-haiku-5-5` is a cheaper option worth comparing in the eval.)
 - **Backend:** FastAPI
 - **Frontend:** Streamlit
 - **PDF:** `pdfplumber` / `pypdf` for text PDFs, `pytesseract` with the Romanian language pack (`ron`) for scanned ones
@@ -117,16 +117,18 @@ Work through these **in order**. Get an end-to-end ugly version working early (P
   (e.g. art. 6 definitions, long lists of contraventions). Splitting those per point is a Phase 5 experiment.
 
 ### Phase 3: Minimal RAG without a framework
-- [ ] Embed chunks, store them in ChromaDB
-- [ ] `ask(question)` → retrieve top-k → prompt → LLM → answer with citations
-- [ ] Refusal when the context is insufficient
-- [ ] Simple CLI to ask questions
+- [x] Embed chunks, store them in ChromaDB (bge-m3, 891 chunks, ~6 min on CPU)
+- [x] `ask(question)` → retrieve top-k → prompt → LLM → answer with citations
+- [ ] Refusal when the context is insufficient (implemented: fixed refusal sentence; verify with a real LLM run)
+- [x] Simple CLI to ask questions
+- Tested end-to-end with a fake LLM only; first real Claude run still pending (needs `ANTHROPIC_API_KEY` in `.env`).
 
 ### Phase 4: Evaluation
-- [ ] `eval/questions.jsonl`: 30–50 hand-written questions with expected answer and expected article(s)
-- [ ] Retrieval hit rate / recall@k script
-- [ ] RAGAS: faithfulness, answer relevancy, context precision, context recall
-- [ ] Baseline results in `eval/results.md`
+- [x] `eval/questions.jsonl`: 30–50 hand-written questions with expected answer and expected article(s)
+  (42: 37 answerable + 5 out-of-scope; article numbers checked against the corpus, review the wording)
+- [x] Retrieval hit rate / recall@k script
+- [x] RAGAS: faithfulness, answer relevancy, context precision, context recall (custom Claude judge adapter)
+- [ ] Baseline results in `eval/results.md` (retrieval baseline done; end-to-end row pending the first real run)
 
 ### Phase 5: Better retrieval
 - [ ] BM25 + hybrid search
@@ -179,13 +181,22 @@ pip install -r requirements.txt
 python -m src.ingest.download        # fetch law HTML into data/raw/ (already done; rerun only to update versions)
 python -m src.ingest.build_chunks    # HTML -> data/processed/chunks.jsonl, prints stats per law
 python -m src.ingest.inspect_chunks  # 3 random chunks; or pass a number, or a chunk_id
-python -m src.retrieval.build_index
+python -m src.retrieval.build_index   # embed chunks into chroma_db/ (rebuilds from scratch, ~6 min CPU)
+python -m src.ingest.build_chunks --split-lists --out chunks_split.jsonl   # chunking variant (Phase 5)
+$env:CHUNKS_FILE="chunks_split.jsonl"; $env:COLLECTION_NAME="laws_split"; python -m src.retrieval.build_index
+python -m src.llamaindex_pipeline.build_index   # LlamaIndex version (collection laws_llamaindex)
 
 # ask from CLI
-python -m src.cli "Ce amendă primesc dacă trec pe roșu?"
+python -m src.cli "Ce amendă primesc dacă trec pe roșu?"   # add --sources to print chunk text, -k N
+python -m src.cli                                          # interactive mode, remembers the conversation
+python -m src.cli --fine path\to\pv.pdf                    # analyze a fine PDF (paid: 1 LLM call)
 
 # evaluation
-python -m eval.run_eval
+python -m eval.retrieval_eval --label baseline   # retrieval only, free; --mode vector|bm25|hybrid, --no-refs, --rerank
+python -m eval.run_eval --limit 3 --no-ragas     # cheap smoke test of generation
+python -m eval.run_eval --label baseline         # answers + own metrics + RAGAS (paid, a few cents with Haiku)
+python -m eval.run_eval --label li --pipeline llamaindex   # same, with the LlamaIndex pipeline
+python -m eval.run_eval eval/runs/answers_X.jsonl --judge-model claude-haiku-5-5   # re-score only
 
 # backend / frontend
 uvicorn src.api.main:app --reload
