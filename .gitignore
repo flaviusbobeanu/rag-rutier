@@ -22,3 +22,6 @@ uploads/
 .idea/
 Thumbs.db
 .DS_Store
+
+# Raw eval outputs (regenerable; the numbers live in eval/results.md)
+eval/runs/
