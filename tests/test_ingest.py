@@ -1,6 +1,6 @@
 """Tests for parsing the law HTML and chunking articles."""
 
-from src.ingest.build_chunks import chunk_article
+from src.ingest.build_chunks import chunk_article, split_list
 from src.ingest.parse_html import Article, parse_html
 from src.ingest.sources import LawDocument
 
@@ -75,3 +75,19 @@ def test_long_article_is_split_per_alineat() -> None:
     chunks = chunk_article(DOC, article)
     assert [c["chunk_id"] for c in chunks] == ["oug195_art10_alin1", "oug195_art10_alin2"]
     assert chunks[1]["text"].startswith("OUG 195/2002, art. 10 alin. (2)\n(2) bbb")
+
+
+def test_split_list_keeps_intro_and_letter_context() -> None:
+    text = (
+        "(1) Se aplică puncte de penalizare, după cum urmează:\n"
+        "a) 2 puncte pentru:\n"
+        "1. fapta unu;\n"
+        "2. fapta doi;\n"
+        "b) 3 puncte pentru fapta trei;\n"
+        "continuare a literei b."
+    )
+    intro, items = split_list(text)
+    assert intro == "(1) Se aplică puncte de penalizare, după cum urmează:"
+    assert [label for label, _ in items] == ["lit. a) pct. 1", "lit. a) pct. 2", "lit. b)"]
+    assert items[0][1] == "a) 2 puncte pentru:\n1. fapta unu;"  # the letter line gives the points
+    assert items[2][1].endswith("continuare a literei b.")

@@ -14,7 +14,7 @@ from src.config import settings
 
 
 def main() -> None:
-    path = settings.processed_dir / "chunks.jsonl"
+    path = settings.processed_dir / settings.chunks_file
     chunks = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
     arg = sys.argv[1] if len(sys.argv) > 1 else "3"
